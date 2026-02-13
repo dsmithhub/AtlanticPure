@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Field Marketing Recruiting Dashboard</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header-left h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        
+        .header-left p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        .header-right {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: white;
+            color: #667eea;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .btn-secondary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid white;
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #218838;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        
+        .container {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1800px;
+            margin: 0 auto;
+            height: calc(100vh - 100px);
+        }
+        
+        .sidebar {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            overflow-y: auto;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        
+        .stat-card.coverage {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+        
+        .stat-card.needed {
+            background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);
+        }
+        
+        .stat-card.percent {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 20px 0 12px 0;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 8px;
+        }
+        
+        .filter-group {
+            margin-bottom: 15px;
+        }
+        
+        .filter-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: #555;
+        }
+        
+        .filter-group select, .filter-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .legend {
+            background: #f9f9f9;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 15px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 2px solid #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        
+        .store-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .store-item {
+            padding: 10px;
+            margin-bottom: 8px;
+            background: #f9f9f9;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+        
+        .store-item:hover {
+            background: #e8e8e8;
+            transform: translateX(3px);
+        }
+        
+        .store-item.priority-high {
+            border-left-color: #ee0979;
+        }
+        
+        .store-item.priority-medium {
+            border-left-color: #ff6a00;
+        }
+        
+        .store-item.priority-low {
+            border-left-color: #ffd700;
+        }
+        
+        .store-item.priority-covered {
+            border-left-color: #11998e;
+            background: #e8f5f3;
+        }
+        
+        .store-name {
+            font-weight: 600;
+            font-size: 13px;
+            color: #333;
+            margin-bottom: 4px;
+        }
+        
+        .store-sales {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .store-rep {
+            font-size: 12px;
+            color: #11998e;
+            font-weight: 500;
+            margin-top: 4px;
+        }
+        
+        .store-status {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: 500;
+            margin-top: 4px;
+        }
+        
+        .store-status.covered {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .store-status.needed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .map-container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            overflow: hidden;
+            position: relative;
+        }
+        
+        #map {
+            width: 100%;
+            height: 100%;
+            min-height: 600px;
+        }
+        
+        .leaflet-popup-content-wrapper {
+            border-radius: 8px;
+        }
+        
+        .popup-content {
+            padding: 5px;
+        }
+        
+        .popup-title {
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        
+        .popup-sales {
+            font-size: 18px;
+            color: #667eea;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .popup-rep {
+            font-size: 14px;
+            color: #11998e;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        
+        .popup-status {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .no-sales {
+            color: #999;
+            font-style: italic;
+        }
+        
+        .priority-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-left: 5px;
+        }
+        
+        .priority-badge.high {
+            background: #fee;
+            color: #c00;
+        }
+        
+        .priority-badge.medium {
+            background: #ffe;
+            color: #c60;
+        }
+        
+        .priority-badge.low {
+            background: #ffd700;
+            color: #886;
+        }
+        
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            animation: fadeIn 0.3s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 0;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 1000px;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h2 {
+            margin: 0;
+            font-size: 24px;
+        }
+        
+        .close {
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            line-height: 30px;
+            text-align: center;
+        }
+        
+        .close:hover {
+            opacity: 0.7;
+        }
+        
+        .modal-body {
+            padding: 30px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        
+        .modal-footer {
+            padding: 20px 30px;
+            border-top: 1px solid #ddd;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        
+        .settings-info {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        
+        .settings-info p {
+            margin: 0;
+            color: #0c5460;
+            font-size: 14px;
+        }
+        
+        .store-settings-list {
+            display: grid;
+            gap: 15px;
+        }
+        
+        .store-setting-item {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .store-setting-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .store-setting-name {
+            font-weight: 600;
+            font-size: 14px;
+            color: #333;
+        }
+        
+        .store-setting-sales {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .store-setting-controls {
+            display: grid;
+            grid-template-columns: 150px 1fr;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .coverage-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .toggle-slider {
+            background-color: #11998e;
+        }
+        
+        input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+        
+        .rep-input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+            width: 100%;
+        }
+        
+        .rep-input:disabled {
+            background: #f0f0f0;
+            cursor: not-allowed;
+        }
+        
+        .search-box {
+            margin-bottom: 20px;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <h1>🎯 Field Marketing Recruiting Dashboard</h1>
+            <p>Home Depot Water Treatment Services - DE, NJ, PA, MD Region</p>
+        </div>
+        <div class="header-right">
+            <button class="btn btn-secondary" onclick="exportData()">📥 Export Data</button>
+            <button class="btn btn-primary" onclick="openSettings()">⚙️ Manage Coverage</button>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="sidebar">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="total-stores">79</div>
+                    <div class="stat-label">Total Stores</div>
+                </div>
+                <div class="stat-card coverage">
+                    <div class="stat-value" id="covered-stores">15</div>
+                    <div class="stat-label">Coverage</div>
+                </div>
+                <div class="stat-card needed">
+                    <div class="stat-value" id="needed-stores">64</div>
+                    <div class="stat-label">Needed</div>
+                </div>
+                <div class="stat-card percent">
+                    <div class="stat-value" id="coverage-percent">19%</div>
+                    <div class="stat-label">Coverage %</div>
+                </div>
+            </div>
+            
+            <div class="section-title">Filters</div>
+            
+            <div class="filter-group">
+                <label for="status-filter">Coverage Status</label>
+                <select id="status-filter">
+                    <option value="all">All Stores</option>
+                    <option value="needed" selected>Recruiting Needed</option>
+                    <option value="covered">Has Coverage</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="priority-filter">Priority Level</label>
+                <select id="priority-filter">
+                    <option value="all">All Priorities</option>
+                    <option value="high">High Priority</option>
+                    <option value="medium">Medium Priority</option>
+                    <option value="low">Low Priority</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="sort-by">Sort By</label>
+                <select id="sort-by">
+                    <option value="sales-high">Sales: High to Low</option>
+                    <option value="sales-low">Sales: Low to High</option>
+                    <option value="name">Store Name</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="search">Search Store</label>
+                <input type="text" id="search" placeholder="Type store name...">
+            </div>
+            
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #11998e;"></div>
+                    <span><strong>Has Coverage</strong></span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ee0979;"></div>
+                    <span><strong>High Priority</strong> - Top Sales Potential</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ff6a00;"></div>
+                    <span><strong>Medium Priority</strong> - Good Opportunity</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ffd700;"></div>
+                    <span><strong>Low Priority</strong> - Future Target</span>
+                </div>
+            </div>
+            
+            <div class="section-title">Store List</div>
+            <div class="store-list" id="store-list"></div>
+        </div>
+        
+        <div class="map-container">
+            <div id="map"></div>
+        </div>
+    </div>
+    
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>⚙️ Manage Store Coverage</h2>
+                <button class="close" onclick="closeSettings()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-info">
+                    <p>✏️ Toggle coverage status and assign representatives to each store. Changes are saved automatically to your browser.</p>
+                </div>
+                
+                <div class="search-box">
+                    <input type="text" id="settings-search" placeholder="🔍 Search stores..." oninput="filterSettingsList()">
+                </div>
+                
+                <div class="store-settings-list" id="settings-list"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="resetToDefaults()">Reset to Defaults</button>
+                <button class="btn btn-success" onclick="closeSettings()">Done</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Store data and state
+        let stores = [{"name": "Lewes", "lat": 38.7470381, "lng": -75.1626876, "has_coverage": false, "sales": 0, "sales_display": "$0", "store_code": "Lewes", "priority": "medium"}, {"name": "Claymont", "lat": 39.817699, "lng": -75.4554416, "has_coverage": false, "sales": 0, "sales_display": "$0", "store_code": "Claymont", "priority": "medium"}, {"name": "Christiana", "lat": 39.6930544, "lng": -75.6625344, "has_coverage": true, "sales": 59390, "sales_display": "$59,390", "store_code": "1601-CHRISTIANA", "priority": "covered"}, {"name": "New Castle", "lat": 39.6701002, "lng": -75.5965244, "has_coverage": false, "sales": 27470, "sales_display": "$27,470", "store_code": "1605-NEW CASTLE", "priority": "high"}, {"name": "Wilmington", "lat": 39.7670058, "lng": -75.5322191, "has_coverage": true, "sales": 30395, "sales_display": "$30,395", "store_code": "8440-WILMINGTON,DE", "priority": "covered"}, {"name": "Dover", "lat": 39.1835599, "lng": -75.5286154, "has_coverage": true, "sales": 233622, "sales_display": "$233,622", "store_code": "1608-DOVER,DE", "priority": "covered"}, {"name": "Middletown", "lat": 39.4454215, "lng": -75.7268275, "has_coverage": true, "sales": 65245, "sales_display": "$65,245", "store_code": "6843-MIDDLETOWN,DE", "priority": "covered"}, {"name": "East Windsor", "lat": 40.2573242, "lng": -74.5451117, "has_coverage": false, "sales": 0, "sales_display": "$0", "store_code": "East Windsor", "priority": "medium"}, {"name": "Glasgow", "lat": 39.6011085, "lng": -75.7506534, "has_coverage": true, "sales": 27950, "sales_display": "$27,950", "store_code": "1603-GLASGOW", "priority": "covered"}, {"name": "Newark", "lat": 39.6688127, "lng": -75.7796626, "has_coverage": false, "sales": 12580, "sales_display": "$12,580", "store_code": "1610-NEWARK,DE", "priority": "high"}, {"name": "Primos", "lat": 39.9238987, "lng": -75.3089661, "has_coverage": false, "sales": 0, "sales_display": "$0", "store_code": "Primos", "priority": "medium"}, {"name": "Glen Mills", "lat": 39.8814926, "lng": -75.5256683, "has_coverage": false, "sales": 0, "sales_display": "$0", "store_code": "Glen Mills", "priority": "medium"}, {"name": "Folsom", "lat": 39.88636, "lng": -75.3262181, "has_coverage": false, "sales": 0, "sales_display": "$0", "store_code": "Folsom", "priority": "medium"}, {"name": "Broomall", "lat": 39.9591817, "lng": -75.3531935, "has_coverage": false, "sales": 0, "sales_display": "$0", "store_code": "Broomall", "priority": "medium"}, {"name": "Frazer", "lat": 40.0326731, "lng": -75.5806246, "has_coverage": false, "sales": 0, "sales_display": "$0", "store_code": "4119-E WHITELAND/FRAZER, PA", "priority": "medium"}, {"name": "Oregon Ave", "lat": 39.9157598, "lng": -75.1861988, "has_coverage": false, "sales": 0, "sales_display": "$0", "store_code": "4166-PHIL/OREGON AVE", "priority": "low"}, {"name": "South Philly", "lat": 39.9259343, "lng": -75.1430243, "has_coverage": false, "sales": 0, "sales_display": "$0", "store_code": "South Philly", "priority": "low"}, {"name": "Brick Township", "lat": 40.0727597, "lng": -74.1306795, "has_coverage": false, "sales": 24149, "sales_display": "$24,149", "store_code": "0912-BRICK", "priority": "high"}, {"name": "South Brunswick", "lat": 40.3944292, "lng": -74.5666325, "has_coverage": false, "sales": 5999, "sales_display": "$5,999", "store_code": "6917-SOUTH BRUNSWICK", "priority": "medium"}, {"name": "Hazlet", "lat": 40.4225527, "lng": -74.1970638, "has_coverage": false, "sales": 3000, "sales_display": "$3,000", "store_code": "0926-HAZLET", "priority": "medium"}, {"name": "Cape May", "lat": 39.0460679, "lng": -74.8541002, "has_coverage": false, "sales": 13000, "sales_display": "$13,000", "store_code": "0943-CAPE MAY", "priority": "high"}, {"name": "Colonia", "lat": 40.5910026, "lng": -74.291812, "has_coverage": false, "sales": 9490, "sales_display": "$9,490", "store_code": "0981-COLONIA", "priority": "high"}, {"name": "Freehold", "lat": 40.2545707, "lng": -74.2930371, "has_coverage": true, "sales": 29459, "sales_display": "$29,459", "store_code": "0961-FREEHOLD", "priority": "covered"}, {"name": "Mahwah", "lat": 41.0794878, "lng": -74.1465614, "has_coverage": false, "sales": 9200, "sales_display": "$9,200", "store_code": "0963-MAHWAH", "priority": "medium"}, {"name": "Absecon", "lat": 39.4160382, "lng": -74.4941842, "has_coverage": false, "sales": 13080, "sales_display": "$13,080", "store_code": "0975-ABSECON", "priority": "high"}, {"name": "Bridgewater", "lat": 40.5760415, "lng": -74.6705993, "has_coverage": false, "sales": 0, "sales_display": "$0", "store_code": "0962-BRIDGEWATER II-ROUTE 202", "priority": "low"}, {"name": "Totowa", "lat": 40.8964273, "lng": -74.2387712, "has_coverage": false, "sales": 7932, "sales_display": "$7,932", "store_code": "0922-TOTOWA", "priority": "medium"}, {"name": "Paterson", "lat": 40.9336913, "lng": -74.1415092, "has_coverage": false, "sales": 7999, "sales_display": "$7,999", "store_code": "0959-PATERSON", "priority": "medium"}, {"name": "Cherry Hill", "lat": 39.9245002, "lng": -75.0386481, "has_coverage": false, "sales": 10298, "sales_display": "$10,298", "store_code": "0989-CHERRY HILL", "priority": "high"}, {"name": "Lawnside", "lat": 39.8696481, "lng": -75.0455106, "has_coverage": true, "sales": 29650, "sales_display": "$29,650", "store_code": "0917-LAWNSIDE", "priority": "covered"}, {"name": "Egg Harbor", "lat": 39.4353644, "lng": -74.6165121, "has_coverage": true, "sales": 51672, "sales_display": "$51,672", "store_code": "0930-EGG HARBOR", "priority": "covered"}, {"name": "Vineland", "lat": 39.4285735, "lng": -75.035012, "has_coverage": true, "sales": 126819, "sales_display": "$126,819", "store_code": "0946-VINELAND", "priority": "covered"}, {"name": "Sicklerville", "lat": 39.7193787, "lng": -75.0261923, "has_coverage": false, "sales": 0, "sales_display": "$0", "store_code": "Sicklerville", "priority": "low"}, {"name": "Mantua Twp", "lat": 39.7861903, "lng": -75.1805559, "has_coverage": false, "sales": 0, "sales_display": "$0", "store_code": "0974-MANTUA", "priority": "low"}, {"name": "West Berlin", "lat": 39.8062782, "lng": -74.9371185, "has_coverage": false, "sales": 0, "sales_display": "$0", "store_code": "West Berlin", "priority": "low"}, {"name": "Deptford", "lat": 39.8194439, "lng": -75.0932162, "has_coverage": false, "sales": 9480, "sales_display": "$9,480", "store_code": "0929-DEPTFORD", "priority": "high"}, {"name": "Tom's River", "lat": 39.9904941, "lng": -74.2118115, "has_coverage": false, "sales": 0, "sales_display": "$0", "store_code": "Tom's River", "priority": "low"}, {"name": "Stafford Twp", "lat": 39.6953669, "lng": -74.2684153, "has_coverage": false, "sales": 0, "sales_display": "$0", "store_code": "Stafford Twp", "priority": "low"}, {"name": "Forked River", "lat": 39.847752, "lng": -74.1875862, "has_coverage": false, "sales": 0, "sales_display": "$0", "store_code": "0969-FORKED RIVER", "priority": "low"}, {"name": "Lakewood", "lat": 40.0544452, "lng": -74.1622174, "has_coverage": false, "sales": 0, "sales_display": "$0", "store_code": "0902-LAKEWOOD", "priority": "low"}, {"name": "Long Branch", "lat": 40.291118, "lng": -74.0374682, "has_coverage": false, "sales": 0, "sales_display": "$0", "store_code": "0907-WEST LONG BRANCH", "priority": "low"}, {"name": "Old Bridge", "lat": 40.4507587, "lng": -74.300945, "has_coverage": false, "sales": 14000, "sales_display": "$14,000", "store_code": "0957-OLD BRIDGE II", "priority": "high"}, {"name": "Milltown", "lat": 40.440072, "lng": -74.4273949, "has_coverage": false, "sales": 16500, "sales_display": "$16,500", "store_code": "0918-MILLTOWN", "priority": "high"}, {"name": "Woodbridge", "lat": 40.5389695, "lng": -74.2962376, "has_coverage": false, "sales": 15599, "sales_display": "$15,599", "store_code": "0916-WOODBRIDGE", "priority": "high"}, {"name": "Edison", "lat": 40.5237481, "lng": -74.3655286, "has_coverage": false, "sales": 0, "sales_display": "$0", "store_code": "0944-EDISON", "priority": "low"}, {"name": "Neptune Twp", "lat": 40.2228652, "lng": -74.0819132, "has_coverage": false, "sales": 7000, "sales_display": "$7,000", "store_code": "0949-NEPTUNE", "priority": "medium"}, {"name": "Howell Twp", "lat": 40.186844, "lng": -74.2521047, "has_coverage": false, "sales": 24479, "sales_display": "$24,479", "store_code": "0933-HOWELL", "priority": "high"}, {"name": "Morganville", "lat": 40.3414874, "lng": -74.3039379, "has_coverage": false, "sales": 0, "sales_display": "$0", "store_code": "Morganville", "priority": "low"}, {"name": "Delran", "lat": 40.0253346, "lng": -74.9388494, "has_coverage": false, "sales": 0, "sales_display": "$0", "store_code": "0970-DELRAN", "priority": "low"}, {"name": "Laurel Twp", "lat": 39.9383398, "lng": -74.9616596, "has_coverage": false, "sales": 0, "sales_display": "$0", "store_code": "Laurel Twp", "priority": "low"}, {"name": "Westampton", "lat": 40.0340157, "lng": -74.8204314, "has_coverage": false, "sales": 0, "sales_display": "$0", "store_code": "Westampton", "priority": "low"}, {"name": "East Hanover", "lat": 40.8104251, "lng": -74.373115, "has_coverage": false, "sales": 0, "sales_display": "$0", "store_code": "East Hanover", "priority": "low"}, {"name": "Parsippany", "lat": 40.8654076, "lng": -74.3724929, "has_coverage": false, "sales": 10980, "sales_display": "$10,980", "store_code": "0977-PARSIPPANY", "priority": "high"}, {"name": "Vauxhall", "lat": 40.7157302, "lng": -74.2911039, "has_coverage": false, "sales": 7499, "sales_display": "$7,499", "store_code": "0915-UNION/VAUXHALL", "priority": "medium"}, {"name": "Bloomfield", "lat": 40.7860331, "lng": -74.1981733, "has_coverage": false, "sales": 26500, "sales_display": "$26,500", "store_code": "0928-BLOOMFIELD", "priority": "high"}, {"name": "Bridgewater", "lat": 40.5644466, "lng": -74.5540301, "has_coverage": false, "sales": 0, "sales_display": "$0", "store_code": "0962-BRIDGEWATER II-ROUTE 202", "priority": "low"}, {"name": "South Plainfield", "lat": 40.5582815, "lng": -74.4329094, "has_coverage": false, "sales": 0, "sales_display": "$0", "store_code": "South Plainfield", "priority": "low"}, {"name": "Watchung", "lat": 40.6426108, "lng": -74.4202489, "has_coverage": false, "sales": 8499, "sales_display": "$8,499", "store_code": "0906-WATCHUNG", "priority": "medium"}, {"name": "Newark", "lat": 40.731311, "lng": -74.1983302, "has_coverage": false, "sales": 12580, "sales_display": "$12,580", "store_code": "1610-NEWARK,DE", "priority": "high"}, {"name": "Union", "lat": 40.6867874, "lng": -74.3032045, "has_coverage": false, "sales": 18899, "sales_display": "$18,899", "store_code": "0954-UNION - RT 22", "priority": "high"}, {"name": "Lodi", "lat": 40.885677, "lng": -74.0654452, "has_coverage": false, "sales": 18974, "sales_display": "$18,974", "store_code": "0932-LODI", "priority": "high"}, {"name": "Passaic", "lat": 40.8716252, "lng": -74.1204479, "has_coverage": false, "sales": 8499, "sales_display": "$8,499", "store_code": "0950-PASSAIC", "priority": "medium"}, {"name": "Paramus", "lat": 40.9567888, "lng": -74.0721505, "has_coverage": false, "sales": 8499, "sales_display": "$8,499", "store_code": "0904-PARAMUS", "priority": "medium"}, {"name": "Paterson", "lat": 40.9336913, "lng": -74.1415092, "has_coverage": false, "sales": 7999, "sales_display": "$7,999", "store_code": "0959-PATERSON", "priority": "medium"}, {"name": "Hackensack", "lat": 40.9098291, "lng": -74.0303103, "has_coverage": false, "sales": 0, "sales_display": "$0", "store_code": "0983-HACKENSACK", "priority": "low"}, {"name": "Newark", "lat": 40.731311, "lng": -74.1983302, "has_coverage": false, "sales": 12580, "sales_display": "$12,580", "store_code": "1610-NEWARK,DE", "priority": "high"}, {"name": "Elizabeth", "lat": 40.6632474, "lng": -74.2435434, "has_coverage": false, "sales": 25738, "sales_display": "$25,738", "store_code": "6905-VH-ELIZABETH", "priority": "high"}, {"name": "Clifton", "lat": 40.8434257, "lng": -74.1579055, "has_coverage": false, "sales": 0, "sales_display": "$0", "store_code": "0908-CLIFTON", "priority": "low"}, {"name": "Union", "lat": 40.6867874, "lng": -74.3032045, "has_coverage": false, "sales": 18899, "sales_display": "$18,899", "store_code": "0954-UNION - RT 22", "priority": "high"}, {"name": "Vaux Hall", "lat": 40.7157302, "lng": -74.2911039, "has_coverage": false, "sales": 7499, "sales_display": "$7,499", "store_code": "0915-UNION/VAUXHALL", "priority": "medium"}, {"name": "Garwood", "lat": 40.6524684, "lng": -74.3206429, "has_coverage": true, "sales": 38029, "sales_display": "$38,029", "store_code": "6903-VH-GARWOOD", "priority": "covered"}, {"name": "Linden", "lat": 40.6179383, "lng": -74.2489285, "has_coverage": false, "sales": 8249, "sales_display": "$8,249", "store_code": "0934-LINDEN", "priority": "medium"}, {"name": "Bloomfield", "lat": 40.7860331, "lng": -74.1981733, "has_coverage": false, "sales": 26500, "sales_display": "$26,500", "store_code": "0928-BLOOMFIELD", "priority": "high"}, {"name": "Berlin", "lat": 38.3412649, "lng": -75.1642057, "has_coverage": false, "sales": 9480, "sales_display": "$9,480", "store_code": "0940-BERLIN TOWNSHIP", "priority": "high"}, {"name": "Salisbury", "lat": 38.4170018, "lng": -75.5624006, "has_coverage": true, "sales": 85355, "sales_display": "$85,355", "store_code": "2561-SALISBURY", "priority": "covered"}, {"name": "Aberdeen", "lat": 39.52369, "lng": -76.1803664, "has_coverage": false, "sales": 0, "sales_display": "$0", "store_code": "2510-ABERDEEN,MD", "priority": "low"}, {"name": "Edgewood", "lat": 39.4389999, "lng": -76.2926888, "has_coverage": false, "sales": 0, "sales_display": "$0", "store_code": "2576-EDGEWOOD", "priority": "low"}, {"name": "Bel Air", "lat": 39.5213126, "lng": -76.3505472, "has_coverage": false, "sales": 2500, "sales_display": "$2,500", "store_code": "2506-BEL AIR", "priority": "medium"}];
+        let map;
+        let markers = {};
+        
+        // Load saved settings from localStorage
+        function loadSettings() {
+            const savedSettings = localStorage.getItem('storeSettings');
+            if (savedSettings) {
+                const settings = JSON.parse(savedSettings);
+                stores.forEach(store => {
+                    const saved = settings.find(s => s.name === store.name);
+                    if (saved) {
+                        store.has_coverage = saved.has_coverage;
+                        store.rep_name = saved.rep_name;
+                    }
+                });
+                recalculatePriorities();
+            }
+        }
+        
+        // Save settings to localStorage
+        function saveSettings() {
+            const settings = stores.map(store => ({
+                name: store.name,
+                has_coverage: store.has_coverage,
+                rep_name: store.rep_name || ''
+            }));
+            localStorage.setItem('storeSettings', JSON.stringify(settings));
+        }
+        
+        // Recalculate priorities when coverage changes
+        function recalculatePriorities() {
+            const storesNoCoverage = stores.filter(s => !s.has_coverage && s.sales > 0);
+            storesNoCoverage.sort((a, b) => b.sales - a.sales);
+            
+            const third = Math.ceil(storesNoCoverage.length / 3);
+            
+            stores.forEach(store => {
+                if (store.has_coverage) {
+                    store.priority = 'covered';
+                } else if (store.sales === 0) {
+                    store.priority = 'low';
+                } else {
+                    const index = storesNoCoverage.findIndex(s => s.name === store.name);
+                    if (index < third) {
+                        store.priority = 'high';
+                    } else if (index < third * 2) {
+                        store.priority = 'medium';
+                    } else {
+                        store.priority = 'low';
+                    }
+                }
+            });
+        }
+        
+        // Initialize app
+        window.addEventListener('load', function() {
+            loadSettings();
+            initMap();
+            updateStats();
+            renderStoreList();
+        });
+        
+        function initMap() {
+            map = L.map('map').setView([39.5, -75.5], 8);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(map);
+            
+            createAllMarkers();
+        }
+        
+        function getMarkerColor(store) {
+            if (store.has_coverage) return '#11998e';
+            switch (store.priority) {
+                case 'high': return '#ee0979';
+                case 'medium': return '#ff6a00';
+                case 'low': return '#ffd700';
+                default: return '#999';
+            }
+        }
+        
+        function getPriorityLabel(priority) {
+            const labels = {
+                'high': 'HIGH PRIORITY',
+                'medium': 'MED PRIORITY',
+                'low': 'LOW PRIORITY'
+            };
+            return labels[priority] || '';
+        }
+        
+        function createMarker(store) {
+            const color = getMarkerColor(store);
+            const size = store.has_coverage ? 26 : 24;
+            
+            const icon = L.divIcon({
+                className: 'custom-marker',
+                html: `<div style="
+                    background: ${color};
+                    width: ${size}px;
+                    height: ${size}px;
+                    border-radius: 50%;
+                    border: 3px solid white;
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                "></div>`,
+                iconSize: [size, size],
+                iconAnchor: [size/2, size/2]
+            });
+            
+            let priorityBadge = '';
+            if (!store.has_coverage && store.priority) {
+                priorityBadge = `<span class="priority-badge ${store.priority}">${getPriorityLabel(store.priority)}</span>`;
+            }
+            
+            let repInfo = '';
+            if (store.has_coverage && store.rep_name) {
+                repInfo = `<div class="popup-rep">👤 ${store.rep_name}</div>`;
+            }
+            
+            const popupContent = `
+                <div class="popup-content">
+                    <div class="popup-title">${store.name} ${priorityBadge}</div>
+                    ${repInfo}
+                    <div class="popup-sales">${store.sales > 0 ? store.sales_display : '<span class="no-sales">No sales data</span>'}</div>
+                    <div class="popup-status ${store.has_coverage ? 'covered' : 'needed'}">
+                        ${store.has_coverage ? '✓ Has Coverage' : '⚠ Recruiting Needed'}
+                    </div>
+                </div>
+            `;
+            
+            const marker = L.marker([store.lat, store.lng], { icon })
+                .bindPopup(popupContent)
+                .addTo(map);
+            
+            return marker;
+        }
+        
+        function createAllMarkers() {
+            // Clear existing markers
+            Object.values(markers).forEach(marker => marker.remove());
+            markers = {};
+            
+            // Create new markers
+            stores.forEach(store => {
+                markers[store.name] = createMarker(store);
+            });
+        }
+        
+        function updateStats() {
+            const covered = stores.filter(s => s.has_coverage).length;
+            const total = stores.length;
+            const needed = total - covered;
+            const percent = Math.round((covered / total) * 100);
+            
+            document.getElementById('total-stores').textContent = total;
+            document.getElementById('covered-stores').textContent = covered;
+            document.getElementById('needed-stores').textContent = needed;
+            document.getElementById('coverage-percent').textContent = percent + '%';
+        }
+        
+        function renderStoreList() {
+            const statusFilter = document.getElementById('status-filter').value;
+            const priorityFilter = document.getElementById('priority-filter').value;
+            const sortBy = document.getElementById('sort-by').value;
+            const searchTerm = document.getElementById('search').value.toLowerCase();
+            
+            let filtered = stores.filter(store => {
+                if (statusFilter === 'needed' && store.has_coverage) return false;
+                if (statusFilter === 'covered' && !store.has_coverage) return false;
+                if (priorityFilter !== 'all' && store.priority !== priorityFilter) return false;
+                if (searchTerm && !store.name.toLowerCase().includes(searchTerm) && 
+                    !store.store_code.toLowerCase().includes(searchTerm)) return false;
+                return true;
+            });
+            
+            if (sortBy === 'sales-high') {
+                filtered.sort((a, b) => b.sales - a.sales);
+            } else if (sortBy === 'sales-low') {
+                filtered.sort((a, b) => a.sales - b.sales);
+            } else if (sortBy === 'name') {
+                filtered.sort((a, b) => a.name.localeCompare(b.name));
+            }
+            
+            const storeList = document.getElementById('store-list');
+            storeList.innerHTML = filtered.map(store => {
+                let priorityBadge = '';
+                if (!store.has_coverage && store.priority) {
+                    priorityBadge = `<span class="priority-badge ${store.priority}">${getPriorityLabel(store.priority)}</span>`;
+                }
+                
+                let repInfo = '';
+                if (store.has_coverage && store.rep_name) {
+                    repInfo = `<div class="store-rep">👤 ${store.rep_name}</div>`;
+                }
+                
+                return `
+                    <div class="store-item priority-${store.priority}" data-name="${store.name}">
+                        <div class="store-name">${store.name} ${priorityBadge}</div>
+                        ${repInfo}
+                        <div class="store-sales">${store.sales > 0 ? 'Sales: ' + store.sales_display : 'No sales data'}</div>
+                        <span class="store-status ${store.has_coverage ? 'covered' : 'needed'}">
+                            ${store.has_coverage ? '✓ Covered' : '⚠ Need Rep'}
+                        </span>
+                    </div>
+                `;
+            }).join('');
+            
+            document.querySelectorAll('.store-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const storeName = item.dataset.name;
+                    const store = stores.find(s => s.name === storeName);
+                    if (store && markers[storeName]) {
+                        map.setView([store.lat, store.lng], 12);
+                        markers[storeName].openPopup();
+                    }
+                });
+            });
+        }
+        
+        // Event listeners
+        document.getElementById('status-filter').addEventListener('change', renderStoreList);
+        document.getElementById('priority-filter').addEventListener('change', renderStoreList);
+        document.getElementById('sort-by').addEventListener('change', renderStoreList);
+        document.getElementById('search').addEventListener('input', renderStoreList);
+        
+        // Settings Modal Functions
+        function openSettings() {
+            document.getElementById('settingsModal').classList.add('active');
+            renderSettingsList();
+        }
+        
+        function closeSettings() {
+            document.getElementById('settingsModal').classList.remove('active');
+        }
+        
+        function renderSettingsList() {
+            const searchTerm = document.getElementById('settings-search')?.value.toLowerCase() || '';
+            
+            let filtered = stores.filter(store => {
+                if (searchTerm && !store.name.toLowerCase().includes(searchTerm) && 
+                    !store.store_code.toLowerCase().includes(searchTerm)) return false;
+                return true;
+            });
+            
+            filtered.sort((a, b) => {
+                if (a.has_coverage !== b.has_coverage) {
+                    return a.has_coverage ? -1 : 1;
+                }
+                return b.sales - a.sales;
+            });
+            
+            const settingsList = document.getElementById('settings-list');
+            settingsList.innerHTML = filtered.map(store => `
+                <div class="store-setting-item">
+                    <div class="store-setting-header">
+                        <div>
+                            <div class="store-setting-name">${store.name}</div>
+                            <div class="store-setting-sales">${store.sales > 0 ? store.sales_display : 'No sales data'}</div>
+                        </div>
+                    </div>
+                    <div class="store-setting-controls">
+                        <div class="coverage-toggle">
+                            <label class="toggle-switch">
+                                <input type="checkbox" ${store.has_coverage ? 'checked' : ''} 
+                                    onchange="toggleCoverage('${store.name}')">
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <span>Has Coverage</span>
+                        </div>
+                        <input type="text" class="rep-input" placeholder="Rep name..." 
+                            value="${store.rep_name || ''}" 
+                            ${!store.has_coverage ? 'disabled' : ''}
+                            oninput="updateRepName('${store.name}', this.value)"
+                            id="rep-${store.name}">
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function filterSettingsList() {
+            renderSettingsList();
+        }
+        
+        function toggleCoverage(storeName) {
+            const store = stores.find(s => s.name === storeName);
+            if (store) {
+                store.has_coverage = !store.has_coverage;
+                if (!store.has_coverage) {
+                    store.rep_name = '';
+                }
+                recalculatePriorities();
+                saveSettings();
+                updateStats();
+                createAllMarkers();
+                renderStoreList();
+                renderSettingsList();
+            }
+        }
+        
+        function updateRepName(storeName, repName) {
+            const store = stores.find(s => s.name === storeName);
+            if (store) {
+                store.rep_name = repName;
+                saveSettings();
+                createAllMarkers();
+                renderStoreList();
+            }
+        }
+        
+        function resetToDefaults() {
+            if (confirm('Reset all coverage and rep assignments to defaults? This cannot be undone.')) {
+                localStorage.removeItem('storeSettings');
+                location.reload();
+            }
+        }
+        
+        function exportData() {
+            const exportData = stores.map(store => ({
+                'Store Name': store.name,
+                'Store Code': store.store_code,
+                'Has Coverage': store.has_coverage ? 'Yes' : 'No',
+                'Rep Name': store.rep_name || '',
+                'Sales': store.sales_display,
+                'Priority': store.priority,
+                'Latitude': store.lat,
+                'Longitude': store.lng
+            }));
+            
+            const csv = [
+                Object.keys(exportData[0]).join(','),
+                ...exportData.map(row => Object.values(row).map(v => `"${v}"`).join(','))
+            ].join('\n');
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'store_coverage_' + new Date().toISOString().split('T')[0] + '.csv';
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
